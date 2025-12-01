@@ -5,8 +5,12 @@ from pymoo.termination import get_termination
 from pymoo.optimize import minimize
 from pymoo.operators.crossover.pntx import TwoPointCrossover
 from pymoo.operators.mutation.bitflip import BitflipMutation
-from pymoo.operators.sampling.rnd import BinaryRandomSampling
+from pymoo.operators.sampling.rnd import BinaryRandomSampling, FloatRandomSampling
 from pymoo.core.sampling import Sampling
+from pymoo.core.callback import Callback
+from sklearn.pipeline import make_pipeline
+
+from sklearn.preprocessing import StandardScaler
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedKFold
@@ -14,8 +18,23 @@ from sklearn.svm import SVC
 import pandas as pd
 from sklearn.metrics import balanced_accuracy_score
 
-class CustomBinaryRandomSampling(Sampling):
+class CustomCallback(Callback):
+    
+    def __init__(self) -> None:
+        self.start = 0
+        super().__init__()
 
+    def initialize(self, algorithm):
+        # print(f"{I} Callback initialized for geeration {algorithm.n_iter}")
+        pass
+    
+    def notify(self, algorithm):
+        # print(f"{I} Nofity for geeration {algorithm.n_iter}")
+        pass
+
+
+class CustomBinaryRandomSampling(Sampling):
+    
     def __init__(self, val=0.2):
         self.val = val
         super().__init__()
@@ -34,12 +53,14 @@ class BiomarkerIdentification(ElementwiseProblem):
                          n_obj=2)
 
     def _evaluate(self, x, out):
-        progress = self.n_eval / self.n_gen
         # simulate a progress bar
-        print(f"Evaluation: {'-'*(progress-1)}{progress}", end='\r')
-        # ind = np.round(x).astype(bool)
+        # print(f"Evaluation: {'-'*(progress-1)}{progress}", end='\r')
         ind = x
+        # ind = x < 0.25
         n_genes = ind.sum()
+        # print(ind)
+        # print(type(ind))
+        # print(n_genes)
         # print(f"Number of genes for this individual: {n_genes}")
         if n_genes == 0:
             out["F"] = [1.0, 1.0]
@@ -47,7 +68,8 @@ class BiomarkerIdentification(ElementwiseProblem):
 
         bal_acc_scores = []
         X_sub = self.X[:, ind]
-        
+
+        # print(f"{I} Start training")
         for train_idx, test_idx in self.cv.split(X_sub, self.y):
             X_train, X_test = X_sub[train_idx], X_sub[test_idx]
             y_train, y_test = self.y[train_idx], self.y[test_idx]
@@ -59,6 +81,7 @@ class BiomarkerIdentification(ElementwiseProblem):
             score = balanced_accuracy_score(y_test, y_pred)
             bal_acc_scores.append(score)
         
+        # print(f"{I} End of training")
         mean_bal_acc = np.mean(bal_acc_scores)
         
         # Objectives (Minimize these)
@@ -70,7 +93,7 @@ class BiomarkerIdentification(ElementwiseProblem):
 SEED = 424242
 POP_SIZE = 40
 OFFSPRING = 10
-TERMINATION_GEN = 3
+TERMINATION_GEN = 100
 DATASET_PATH = './GSE19429_Biomarker_Input.csv'
 I = "[i]"
 
@@ -81,6 +104,8 @@ df = pd.read_csv(DATASET_PATH)
 
 print(f"{I} processing the data...")
 data = df.drop(columns=['Unnamed: 0','target']).values
+# CRUCIAL step, normalize the data
+data = StandardScaler().fit_transform(data)
 data = np.ascontiguousarray(data)
 target = df['target']
 
@@ -103,10 +128,11 @@ problem = BiomarkerIdentification(data, labels, clf, cv)
 print(f"{I} Defining algorithm...")
 algorithm = NSGA2(
     pop_size=POP_SIZE,
-    sampling=CustomBinaryRandomSampling(),
+    sampling=BinaryRandomSampling(),
     crossover=TwoPointCrossover(),
     mutation=BitflipMutation(),
     n_offsprings=OFFSPRING,
+    callback=CustomCallback(),
     eliminate_duplicates=True)
 
 # link to possible termination criterions https://pymoo.org/interface/termination.html
