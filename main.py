@@ -8,7 +8,7 @@ from pymoo.operators.mutation.bitflip import BitflipMutation
 from pymoo.operators.sampling.rnd import BinaryRandomSampling, FloatRandomSampling
 from pymoo.core.sampling import Sampling
 from pymoo.core.callback import Callback
-from sklearn.pipeline import make_pipeline
+import matplotlib.pyplot as plt
 
 from sklearn.preprocessing import StandardScaler
 
@@ -40,6 +40,8 @@ class CustomBinaryRandomSampling(Sampling):
         super().__init__()
 
     def _do(self, problem, n_samples, *args, random_state=None, **kwargs):
+        if random_state is None:
+            print("random_state is None")
         val = random_state.random((n_samples, problem.n_var))
         return (val < self.val).astype(bool)
 
@@ -91,9 +93,9 @@ class BiomarkerIdentification(ElementwiseProblem):
         out["F"] = [f1, f2]
 
 SEED = 424242
-POP_SIZE = 40
-OFFSPRING = 10
-TERMINATION_GEN = 100
+POP_SIZE = 50
+OFFSPRING = 50
+TERMINATION_GEN = 50
 DATASET_PATH = './GSE19429_Biomarker_Input.csv'
 I = "[i]"
 
@@ -103,10 +105,13 @@ print(f"{I} Loading dataset {DATASET_PATH}...")
 df = pd.read_csv(DATASET_PATH)
 
 print(f"{I} processing the data...")
+gene_names = df.drop(columns=['Unnamed: 0','target']).columns
+
 data = df.drop(columns=['Unnamed: 0','target']).values
 # CRUCIAL step, normalize the data
 data = StandardScaler().fit_transform(data)
 data = np.ascontiguousarray(data)
+
 target = df['target']
 
 print(f"Data: {data.shape}")
@@ -128,7 +133,7 @@ problem = BiomarkerIdentification(data, labels, clf, cv)
 print(f"{I} Defining algorithm...")
 algorithm = NSGA2(
     pop_size=POP_SIZE,
-    sampling=BinaryRandomSampling(),
+    sampling=CustomBinaryRandomSampling(),
     crossover=TwoPointCrossover(),
     mutation=BitflipMutation(),
     n_offsprings=OFFSPRING,
