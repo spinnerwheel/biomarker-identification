@@ -1,0 +1,5 @@
+numpy
+pymoo
+matplotlib
+scikit-learn
+pandas
