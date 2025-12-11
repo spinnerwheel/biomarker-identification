@@ -2,6 +2,7 @@ import numpy as np
 from pymoo.core.problem import ElementwiseProblem
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.termination import get_termination
+from pymoo.termination.default import DefaultMultiObjectiveTermination
 from pymoo.optimize import minimize
 from pymoo.operators.crossover.pntx import TwoPointCrossover
 from pymoo.operators.mutation.bitflip import BitflipMutation
@@ -22,6 +23,7 @@ class CustomCallback(Callback):
     
     def __init__(self) -> None:
         self.start = 0
+        self.conv = []
         super().__init__()
 
     def initialize(self, algorithm):
@@ -30,6 +32,8 @@ class CustomCallback(Callback):
     
     def notify(self, algorithm):
         # print(f"{I} Nofity for geeration {algorithm.n_iter}")
+        # Get the best accuracy from the current population to measure convergence
+        self.conv.append(algorithm.pop.get("F")[:,0].min())
         pass
 
 
@@ -102,7 +106,7 @@ gene_names = df.drop(columns=['Unnamed: 0','target']).columns
 data = df.drop(columns=['Unnamed: 0','target']).values
 # CRUCIAL step, normalize the data
 data = RobustScaler().fit_transform(data)
-# Should avoid data copy according to 
+# Should avoid data copy according to
 # https://scikit-learn.org/stable/modules/svm.html#tips-on-practical-use
 data = np.ascontiguousarray(data)
 
@@ -134,17 +138,24 @@ algorithm = NSGA2(
     mutation=BitflipMutation(),
     n_offsprings=OFFSPRING,
     callback=CustomCallback(),
+    save_history=False,
     eliminate_duplicates=True)
 
 # link to possible termination criterions https://pymoo.org/interface/termination.html
-termination = get_termination("n_gen", TERMINATION_GEN)
+termination = DefaultMultiObjectiveTermination(
+    xtol=1e-8,
+    cvtol=1e-6,
+    ftol=0.0025,
+    period=20,
+    n_max_gen=TERMINATION_GEN,
+    n_max_evals=100000,
+)
 
 print("[✓] Starting optimization...")
 res = minimize(problem,
                algorithm,
                termination,
                seed=SEED,
-               save_history=True,
                verbose=True)
 # TODO
 # Pareto front plot
@@ -179,7 +190,7 @@ plt.show()
 
 # Print Best Solutions
 print("\n" + "="*50)
-print(f" PARETO OPTIMAL SOLUTIONS (Sorted by Accuracy)")
+print(f" PARETO OPTIMAL SOLUTIONS (Sorted by number of genes)")
 print("="*50)
 print(f"{'# Genes':<10} | {'Bal Acc':<10} | {'Genes Selected'}")
 print("-" * 50)
