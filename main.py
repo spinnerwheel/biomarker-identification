@@ -97,7 +97,7 @@ def save_run(res, filename=None):
     Save results of a run serialized in a file.
     """
     if filename is None:
-        filename = strftime("%j_%H:%M:%S.run")
+        filename = "runs/" + strftime("%j_%H:%M:%S.run")
     with bz2.open(filename, "wb") as f:
         pickle.dump(res, f)
     
