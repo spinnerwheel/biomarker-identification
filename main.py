@@ -9,14 +9,10 @@ from pymoo.operators.mutation.bitflip import BitflipMutation
 # from pymoo.operators.sampling.rnd import BinaryRandomSampling, FloatRandomSampling
 from pymoo.core.sampling import Sampling
 from pymoo.core.callback import Callback
-# import matplotlib.pyplot as plt
 
-# from sklearn.preprocessing import StandardScaler, RobustScaler
-
-# from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedKFold
 from sklearn.svm import SVC
-# import pandas as pd
+
 from sklearn.metrics import balanced_accuracy_score
 
 import argparse
@@ -105,6 +101,7 @@ class BiomarkerIdentification(ElementwiseProblem):
         out["F"] = [f1, f2]
 
 
+# Define Argument Parser
 def parse_args():
     parser = argparse.ArgumentParser(description="Biomarker Identification using NSGA-II")
 
@@ -183,71 +180,10 @@ def main():
     print(f"{I} Offspring per Generation: {OFFSPRING}")
     print(f"{I} Termination Generation: {TERMINATION_GEN}")
 
-    # np.random.seed(SEED)
-
-    # print(f"{I} Loading dataset {DATASET_PATH}...")
-    # df = pd.read_csv(DATASET_PATH)
-
-    # print(f"{I} Processing the data...")
-    # gene_names = df.drop(columns=['Unnamed: 0','target']).columns
-
-    # data = df.drop(columns=['Unnamed: 0','target']).values
-    # # CRUCIAL step, normalize the data
-    # data = RobustScaler().fit_transform(data)
-    # # Should avoid data copy according to
-    # # https://scikit-learn.org/stable/modules/svm.html#tips-on-practical-use
-    # data = np.ascontiguousarray(data)
-
-    # target = df['target']
-
-    # print(f"Data: {data.shape}")
-    # print("Labels: ")
-    # unique, counts = np.unique(target, return_counts=True)
-    # for u,c in zip(unique, counts):
-    #     print(f"\t{u}: {c} samples")
-
-    # # label MDS = 1, Healthy = 0
-    # labels = LabelEncoder().fit_transform(target)
-
+    # Load Data
     data, labels, gene_names = process_data(DATASET_NAME, I)
 
-    # print(f"{I} Defining classifier...")
-    # # clf = SVC(kernel='poly', class_weight='balanced', random_state=SEED)
-    # clf = SVC(class_weight='balanced', random_state=SEED)
-    # # ada = AdaBoostClassifier(estimator=clf, random_state=SEED)
-    # cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)
-
-    # print(f"{I} Defining problem...")
-    # problem = BiomarkerIdentification(data, labels, clf, cv)
-
-    # print(f"{I} Defining algorithm...")
-    # algorithm = NSGA2(
-    #     pop_size=POP_SIZE,
-    #     sampling=CustomBinaryRandomSampling(val=0.02),
-    #     crossover=TwoPointCrossover(),
-    #     mutation=BitflipMutation(),
-    #     n_offsprings=OFFSPRING,
-    #     callback=CustomCallback(),
-    #     save_history=False,
-    #     eliminate_duplicates=True)
-
-    # # link to possible termination criterions https://pymoo.org/interface/termination.html
-    # termination = DefaultMultiObjectiveTermination(
-    #     xtol=1e-8,
-    #     cvtol=1e-6,
-    #     ftol=args.ftol,
-    #     period=20,
-    #     n_max_gen=TERMINATION_GEN,
-    #     n_max_evals=100000,
-    # )
-
-    # print("[V] Starting optimization...")
-    # res = minimize(problem,
-    #             algorithm,
-    #             termination,
-    #             seed=SEED,
-    #             verbose=True)
-    
+    # Run Experiment
     res, problem = run_experiment(SEED, POP_SIZE, OFFSPRING, TERMINATION_GEN, data, labels, 100000, I, args.ftol)
 
     # TODO
@@ -255,53 +191,22 @@ def main():
     # Average, min, max genes for generation
     # Distribution of genes
 
-    # Gemini stuff
-
     # Get Results
-    # F = res.F
-    X_res = res.X
-
     # Convert Error back to Accuracy
-    # accuracy = 1.0 - F[:, 0]
     accuracy = get_accuracy(res)
     # Number of Genes Selected
     num_genes = get_number_of_genes(res, problem)
-    # num_genes = (F[:, 1] * problem.n_var).astype(int)
 
     # Sort
     sorted_idx = np.argsort(accuracy)
     accuracy = accuracy[sorted_idx]
     num_genes = num_genes[sorted_idx]
-    X_res = X_res[sorted_idx]
+    X_res = res.X[sorted_idx]
 
     # Plot Pareto Front
-    # plt.figure(figsize=(10, 6))
-    # plt.scatter(num_genes, accuracy, s=80, c='blue', edgecolors='k')
-    # plt.plot(num_genes, accuracy, linestyle='--', color='gray', alpha=0.5)
-    # plt.title(f"Pareto Front (GSE19429)\nOptimizing Balanced Accuracy for Imbalanced Data")
-    # plt.xlabel("Number of Genes")
-    # plt.ylabel("Balanced Accuracy (5-Fold CV)")
-    # plt.grid(True, linestyle='--', alpha=0.5)
-    # plt.savefig("Pareto_GSE19429.png")
-    # plt.show()
-
     plot_pareto_front(DATASET_NAME, num_genes, accuracy)
 
-    # Print Best Solutions
-    # print("\n" + "="*50)
-    # print(f" PARETO OPTIMAL SOLUTIONS (Sorted by number of genes)")
-    # print("="*50)
-    # print(f"{'# Genes':<10} | {'Bal Acc':<10} | {'Genes Selected'}")
-    # print("-" * 50)
-
-    # for i in range(len(accuracy)):
-    #     mask = np.round(X_res[i]).astype(bool)
-    #     selected = list(gene_names[mask])
-    #     # Only print unique accuracy points to avoid clutter
-    #     if i > 0 and accuracy[i] == accuracy[i-1] and num_genes[i] == num_genes[i-1]:
-    #         continue
-    #     print(f"{num_genes[i]:<10} | {accuracy[i]:.4f}     | {selected}")
-
+    # Print Results
     print_results(accuracy, num_genes, X_res, gene_names)
 
     # Y-Scrambled validation
@@ -312,53 +217,21 @@ def main():
 
     print(f"{I} Running Y-Scrambled to validate the results...")
 
+    # # Redefine all the elements with the new SEED
     SEED = 696969
+    np.random.seed(SEED)
 
     # Shuffle Labels
-    np.random.seed(SEED)
     labels_shuffled = np.random.permutation(labels)
 
-    # # Redefine all the elements with the new SEED
-    # clf = SVC(class_weight='balanced', random_state=SEED)
-    # cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)
-    # algorithm = NSGA2(
-    #     pop_size=POP_SIZE,
-    #     sampling=CustomBinaryRandomSampling(val=0.02),
-    #     crossover=TwoPointCrossover(),
-    #     mutation=BitflipMutation(),
-    #     n_offsprings=OFFSPRING,
-    #     callback=CustomCallback(),
-    #     eliminate_duplicates=True)
-    # # Run GA on Garbage Data
-    # problem_shuffled = BiomarkerIdentification(data, labels_shuffled, clf, cv)
-    # res_shuffled = minimize(
-    #     problem_shuffled,
-    #     algorithm,
-    #     termination,
-    #     seed=SEED,
-    #     verbose=True)
-
-
+    # Run Experiment with Scrambled Labels
     res_shuffled, _ = run_experiment(SEED, POP_SIZE, OFFSPRING, TERMINATION_GEN, data, labels_shuffled, 100000, I, args.ftol)
 
     # Get Best Scrambled Accuracy
-    # shuffled_acc = 1.0 - res_shuffled.F[:, 0]
     shuffled_acc = get_accuracy(res_shuffled)
 
-
-    # Check Validity
+    # Check Validity of Biomarkers
     check_biomarker_validity(accuracy, shuffled_acc)
-
-    # best_shuffled = np.max(shuffled_acc)
-    # best_real = np.max(accuracy)
-
-    # print(f"Real Balanced Accuracy:      {best_real:.4f}")
-    # print(f"Scrambled Balanced Accuracy: {best_shuffled:.4f}")
-
-    # if best_shuffled < (best_real - 0.15):
-    #     print("\nCONCLUSION: PASS. The biomarkers are valid signal.")
-    # else:
-    #     print("\nCONCLUSION: WARNING. The model might be overfitting.")
 
 
 if __name__ == "__main__":
