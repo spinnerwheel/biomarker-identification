@@ -110,7 +110,7 @@ def parse_args():
     parser.add_argument("--dataset_name", type=str, default="GSE19429", help="Name of the dataset (for logging purposes)")
     parser.add_argument("--clf", type=str, default="SVC", help="Classifier to use (default: SVC)")
     parser.add_argument("--cv_folds", type=int, default=5, help="Number of folds for Stratified K-Fold CV")
-    parser.add_argument("--save_history", type=bool, default=False, help="Flag to save optimization history")
+    parser.add_argument("--save_history", type=bool, default=True, help="Flag to save optimization history")
     parser.add_argument("--verbose", type=bool, default=True, help="Flag to enable verbose output")
     parser.add_argument("--n_max_evals", type=int, default=100000, help="Maximum number of evaluations before termination")
     parser.add_argument("--ftol", type=float, default=0.0025, help="Function tolerance for termination")
