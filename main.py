@@ -1,12 +1,10 @@
 import numpy as np
 from pymoo.core.problem import ElementwiseProblem
 from pymoo.algorithms.moo.nsga2 import NSGA2
-# from pymoo.termination import get_termination
 from pymoo.termination.default import DefaultMultiObjectiveTermination
 from pymoo.optimize import minimize
 from pymoo.operators.crossover.pntx import TwoPointCrossover
 from pymoo.operators.mutation.bitflip import BitflipMutation
-# from pymoo.operators.sampling.rnd import BinaryRandomSampling, FloatRandomSampling
 from pymoo.core.sampling import Sampling
 from pymoo.core.callback import Callback
 
@@ -18,7 +16,7 @@ from sklearn.metrics import balanced_accuracy_score
 import argparse
 
 from utils.data_processing import process_data
-from utils.utils import check_biomarker_validity, get_accuracy, get_number_of_genes, plot_pareto_front, print_results
+from utils.utils import check_biomarker_validity, get_accuracy, get_number_of_genes, plot_pareto_front, print_results, save_run, load_run
 
 class CustomCallback(Callback):
     """
@@ -185,6 +183,8 @@ def main():
 
     # Run Experiment
     res, problem = run_experiment(SEED, POP_SIZE, OFFSPRING, TERMINATION_GEN, data, labels, 100000, I, args.ftol)
+
+    save_run(res)
 
     # TODO
     # Pareto front plot

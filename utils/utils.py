@@ -1,5 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from os import path
+import bz2
+import pickle
 
 def get_accuracy(res):
     return 1.0 - res.F[:, 0]
@@ -50,3 +53,24 @@ def check_biomarker_validity(accuracy, shuffled_acc):
         print("\nCONCLUSION: PASS. The biomarkers are valid signal.")
     else:
         print("\nCONCLUSION: WARNING. The model might be overfitting.")
+
+        
+def save_run(res, filename=None):
+    """
+    Save results of a run serialized in a file.
+    """
+    if filename is None:
+        filename = "runs/" + strftime("%j_%H:%M:%S.run")
+    with bz2.open(filename, "wb") as f:
+        pickle.dump(res, f)
+    
+
+def load_run(filename: str):
+    """
+    Return results of a previous run, loaded from file.
+    """
+    res = None
+    if path.exists(filename) and path.isfile(filename):
+        with bz2.open(filename, "rb") as f:
+            res = pickle.load(f)
+    return res
