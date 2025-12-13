@@ -17,6 +17,8 @@ import argparse
 
 from utils.data_processing import process_data
 from utils.utils import check_biomarker_validity, get_accuracy, get_number_of_genes, plot_pareto_front, print_results, save_run, load_run
+from time import strftime
+
 
 class CustomCallback(Callback):
     """
