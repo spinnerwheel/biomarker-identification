@@ -1,23 +1,26 @@
 import numpy as np
 from pymoo.core.problem import ElementwiseProblem
 from pymoo.algorithms.moo.nsga2 import NSGA2
-from pymoo.termination import get_termination
 from pymoo.termination.default import DefaultMultiObjectiveTermination
 from pymoo.optimize import minimize
 from pymoo.operators.crossover.pntx import TwoPointCrossover
 from pymoo.operators.mutation.bitflip import BitflipMutation
-from pymoo.operators.sampling.rnd import BinaryRandomSampling, FloatRandomSampling
 from pymoo.core.sampling import Sampling
 from pymoo.core.callback import Callback
 import matplotlib.pyplot as plt
 
-from sklearn.preprocessing import StandardScaler, RobustScaler
+from sklearn.preprocessing import RobustScaler
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedKFold
 from sklearn.svm import SVC
 import pandas as pd
 from sklearn.metrics import balanced_accuracy_score
+import pickle
+from os import path
+from time import strftime
+import bz2
+
 
 class CustomCallback(Callback):
     
@@ -88,6 +91,27 @@ class BiomarkerIdentification(ElementwiseProblem):
         
         out["F"] = [f1, f2]
 
+
+def save_run(res, filename=None):
+    """
+    Save results of a run serialized in a file.
+    """
+    if filename is None:
+        filename = strftime("%j_%H:%M:%S.run")
+    with bz2.open(filename, "wb") as f:
+        pickle.dump(res, f)
+    
+
+def load_run(filename: str):
+    """
+    Return results of a previous run, loaded from file.
+    """
+    res = None
+    if path.exists(filename) and path.isfile(filename):
+        with bz2.open(filename, "rb") as f:
+            res = pickle.load(f)
+    return res
+
 SEED = 424242
 POP_SIZE = 1000
 OFFSPRING = 500
@@ -101,9 +125,9 @@ print(f"{I} Loading dataset {DATASET_PATH}...")
 df = pd.read_csv(DATASET_PATH)
 
 print(f"{I} Processing the data...")
-gene_names = df.drop(columns=['Unnamed: 0','target']).columns
+gene_names = df.drop(columns=['Unnamed: 0', 'target']).columns
 
-data = df.drop(columns=['Unnamed: 0','target']).values
+data = df.drop(columns=['Unnamed: 0', 'target']).values
 # CRUCIAL step, normalize the data
 data = RobustScaler().fit_transform(data)
 # Should avoid data copy according to
