@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from os import path
 import bz2
 import pickle
+from time import strftime
 
 def get_accuracy(res):
     return 1.0 - res.F[:, 0]
